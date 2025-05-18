@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { DRACOLoader, GLTFLoader, OrbitControls } from "three/examples/jsm/Addons.js";
@@ -254,7 +254,9 @@ export default function Scene({
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 10
           }}
-        ></Box>
+        >
+          <CircularProgress color="secondary" size={60} />
+        </Box>
       )}
     </Box>
   )

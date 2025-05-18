@@ -1,4 +1,9 @@
-import { Box, Divider, FormControlLabel, Stack, Switch, Typography } from "@mui/material";
+import { Box, Button, Divider, FormControlLabel, Stack, Switch, Typography } from "@mui/material";
+import { getContrastTextColor } from "../utils";
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import { HexColorPicker } from "react-colorful";
 
 interface ControlPanelProps {
   isClothingVisible: boolean;
@@ -30,7 +35,7 @@ export default function ControlPanel({
         }
         label={
           <Stack>
-            {isClothingVisible ? "on" : "off"}
+            {isClothingVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
             <Typography>Clothing Visibility</Typography>
           </Stack>
         }
@@ -39,7 +44,8 @@ export default function ControlPanel({
       {hasClothing && (
         <>
           <Typography variant="subtitle2" gutterBottom>Clothing Color</Typography>
-          <Box>
+          <Box sx={{ mb: 2 }}>
+            <HexColorPicker color={clothingColor} onChange={onColorChange} style={{ width: '100%' }} />
             <Box
               sx={{ 
                 mt: 1, 
@@ -50,10 +56,22 @@ export default function ControlPanel({
                 textAlign: 'center',
                 color: getContrastTextColor(clothingColor)
               }}
-            >{clothingColor}</Box>
+            >
+              {clothingColor}
+            </Box>
           </Box>
+          <Divider sx={{ my: 2 }} />
         </>
       )}
+      <Button 
+        variant="outlined"
+        startIcon={<RestartAltIcon />}
+        onClick={onReset}
+        fullWidth
+        color="primary"
+      >
+        Reset Scene
+      </Button>
     </Box>
   )
 }

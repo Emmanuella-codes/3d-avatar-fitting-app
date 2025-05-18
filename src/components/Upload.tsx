@@ -1,6 +1,8 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
+import PersonIcon from '@mui/icons-material/Person';
+import CheckroomIcon from '@mui/icons-material/Checkroom';
 
 interface UploadProps {
   onAvatarUpload: (url: string) => void;
@@ -61,7 +63,7 @@ export default function Upload({onAvatarUpload, onClothingUpload}: UploadProps) 
       <Box sx={dropzoneStyle} {...getAvatarRootProps()}>
         <input {...getAvatarInputProps()} />
         <Stack direction="column" spacing={1} alignItems="center">
-          {/* <PersonIcon fontSize="large" color="primary" /> */}
+          <PersonIcon fontSize="large" color="primary" />
           <Typography variant="body2">
             Drag & drop or click to select
           </Typography>
@@ -72,7 +74,7 @@ export default function Upload({onAvatarUpload, onClothingUpload}: UploadProps) 
       <Box sx={dropzoneStyle} {...getClothingRootProps()}>
         <input {...getClothingInputProps()} />
         <Stack direction="column" spacing={1} alignItems="center">
-          {/* <PersonIcon fontSize="large" color="primary" /> */}
+          <CheckroomIcon fontSize="large" color="secondary" />
           <Typography variant="body2">
             Drag & drop or click to select
           </Typography>
