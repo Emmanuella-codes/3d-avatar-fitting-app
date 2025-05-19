@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 export function getContrastTextColor(hexColor: string): string {
   const hex = hexColor.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
@@ -8,3 +10,20 @@ export function getContrastTextColor(hexColor: string): string {
   // return black for bright colors, white for dark colors
   return brightness > 128 ? '#000000' : '#ffffff';
 }
+
+export function disposeSceneResources(scene: THREE.Scene) {
+    scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        if (object.geometry) {
+          object.geometry.dispose();
+        }
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      }
+    });
+  };

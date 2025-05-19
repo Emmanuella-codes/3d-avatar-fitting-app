@@ -1,7 +1,9 @@
 import { Box, CircularProgress } from "@mui/material";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { DRACOLoader, GLTFLoader, OrbitControls } from "three/examples/jsm/Addons.js";
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 
 interface SceneProps {
@@ -29,8 +31,25 @@ export default function Scene({
   const avatarRef = useRef<THREE.Object3D | null>(null);
   const clothingRef = useRef<THREE.Object3D | null>(null);
   const clothingMaterialRef = useRef<THREE.Material | null>(null);
+  const animationFrameIdRef = useRef<number | null>(null);
+  const loaderRef = useRef<GLTFLoader | null>(null);
+  const isInitializedRef = useRef<boolean>(false);
   
   useEffect(() => {
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
+
+    if (animationFrameIdRef.current !== null) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
+    }
+
+    const gltfLoader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('/draco-gltf/');
+    gltfLoader.setDRACOLoader(dracoLoader);
+    loaderRef.current = gltfLoader;
+
     if (!containerRef.current) return;
 
     // create scene, camera, renderer, light
@@ -45,6 +64,7 @@ export default function Scene({
     );
     camera.position.set(0, 1, 2);
     cameraRef.current = camera;
+    
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
@@ -53,14 +73,20 @@ export default function Scene({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+    
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
+
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
     directionalLight.position.set(5, 10, 7.5);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 1024;
     directionalLight.shadow.mapSize.height = 1024;
     scene.add(directionalLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    fillLight.position.set(-5, 5, -7.5);
+    scene.add(fillLight);
 
     // orbit controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -69,18 +95,30 @@ export default function Scene({
     controls.minDistance = 1;
     controls.maxDistance = 10;
     controlsRef.current = controls;
+
     const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222)
     scene.add(gridHelper);
-    const animate = () => {
-      requestAnimationFrame(animate);
-      if (controlsRef.current) {
-        controlsRef.current.update();
+
+    function StartAnimationLoop() {
+      if (animationFrameIdRef.current !== null) {
+        cancelAnimationFrame(animationFrameIdRef.current);
       }
-      if (cameraRef.current && sceneRef.current && rendererRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-      }
-    };
-    animate();
+
+      const animate = () => {
+        animationFrameIdRef.current = requestAnimationFrame(animate);
+        
+        if (controlsRef.current) {
+          controlsRef.current.update();
+        }
+        if (cameraRef.current && sceneRef.current && rendererRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+      };
+
+      animate();
+    }
+
+    StartAnimationLoop()
 
     // resize window
     const handleResize = () => {
@@ -92,11 +130,21 @@ export default function Scene({
       rendererRef.current.setSize(width, height);
     };
     window.addEventListener('resize', handleResize);
+    const container = containerRef.current
+    
     return () => {
-      window.removeEventListener('resize', handleResize)
-      if (rendererRef.current && containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
+      isInitializedRef.current = false;
+
+      if (animationFrameIdRef.current !== null) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+        animationFrameIdRef.current = null;
       }
+
+      window.removeEventListener('resize', handleResize)
+      if (rendererRef.current && container) {
+        container.removeChild(rendererRef.current.domElement);
+      }
+
       if (sceneRef.current) {
         sceneRef.current.traverse((object) => {
           if (object instanceof THREE.Mesh) {
@@ -114,42 +162,87 @@ export default function Scene({
       if (rendererRef.current) {
         rendererRef.current.dispose();
       }
+
+      if (dracoLoader) {
+        dracoLoader.dispose();
+      }
+
+      sceneRef.current = null;
+      cameraRef.current = null;
+      rendererRef.current = null;
+      controlsRef.current = null;
+      avatarRef.current = null;
+      clothingRef.current = null;
+      clothingMaterialRef.current = null;
+      loaderRef.current = null;
     };
 
   }, []);
 
   // load avatar model
   useEffect(() => {
-    if (!avatarUrl || !sceneRef.current) return;
+    if (!avatarUrl || !sceneRef.current || !loaderRef.current) return;
+
     if (avatarRef.current) {
       sceneRef.current.remove(avatarRef.current);
       avatarRef.current = null;
     }
-    const loader = new GLTFLoader();
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    loader.setDRACOLoader(dracoLoader);
-    loader.load(
+
+    loaderRef.current.load(
       avatarUrl,
       (gltf) => {
         const model = gltf.scene;
+        if (!model) {
+          console.error('No model in GLTF scene');
+          onLoadingComplete();
+          return;
+        }
+
+        model.traverse((node) => {
+          if (node instanceof THREE.Mesh) {
+            console.log('Mesh found in avatar:', node.name);
+            
+            // handle transparency issues
+            if (node.material) {
+              if (Array.isArray(node.material)) {
+                node.material.forEach(mat => {
+                  if (mat.transparent) {
+                    mat.alphaTest = 0.5;
+                  }
+                });
+              } else if (node.material.transparent) {
+                node.material.alphaTest = 0.5;
+              }
+            }
+
+            node.castShadow = true;
+            node.receiveShadow = true;
+          }
+        });
+
+        // positioning
+        model.position.set(0, 0, 0);
+        model.scale.set(1, 1, 1);
+
         const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
+        // const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        model.position.x = -center.x;
-        model.position.y = -center.y;
-        model.position.z = -center.z;
+        console.log('Bounding box size:', size);
         
-        // adjust camera & controls
-        if (cameraRef.current && controlsRef) {
+        // model.position.set(0, 0, 0);
+        // model.position.x = -center.x;
+        // model.position.y = -center.y;
+        // model.position.z = -center.z;
+        if (cameraRef.current && controlsRef.current) {
           const maxDim = Math.max(size.x, size.y, size.y);
           const fov = cameraRef.current.fov * (Math.PI / 180);
           const cameraDistance = maxDim / (2 * Math.tan(fov / 2));
           cameraRef.current.position.z = cameraDistance * 1.5;
           cameraRef.current.updateProjectionMatrix();
-          controlsRef.current?.target.set(0, size.y / 2, 0);
-          controlsRef.current?.update();
+          controlsRef.current.target.set(0, size.y / 2, 0);
+          controlsRef.current.update();
         }
+
         if (sceneRef.current) {
           sceneRef.current.add(model);
           avatarRef.current = model;
@@ -157,9 +250,12 @@ export default function Scene({
             onLoadingComplete();
           }
         }
+        if (rendererRef.current && cameraRef.current && sceneRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current)
+        }
       },
       (xhr) => {
-        console.log((xhr.loaded / xhr.total * 1000) + '% loaded');
+        console.log((xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
       },
       (error) => {
         console.error('Error loading avatar model:', error);
@@ -170,17 +266,14 @@ export default function Scene({
 
   // load clothing model
   useEffect(() => {
-    if (!clothingUrl || !sceneRef.current) return;
+    if (!clothingUrl || !sceneRef.current || !loaderRef.current) return;
     if (clothingRef.current) {
       sceneRef.current.remove(clothingRef.current);
       clothingRef.current = null;
       clothingMaterialRef.current = null;
     }
-    const loader = new GLTFLoader();
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    loader.setDRACOLoader(dracoLoader);
-    loader.load(
+
+    loaderRef.current.load(
       clothingUrl,
       (gltf) => {
         const model = gltf.scene;
@@ -215,7 +308,7 @@ export default function Scene({
         }
       },
       (xhr) => {
-        console.log((xhr.loaded / xhr.total * 1000) + '% loaded');
+        console.log((xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
       },
       (error) => {
         console.error('Error loading avatar model:', error);
@@ -224,7 +317,6 @@ export default function Scene({
     );
   }, [clothingColor, clothingUrl, isClothingVisible, onLoadingComplete]);
 
-  // clothing visibility
   useEffect(() => {
     if (clothingMaterialRef.current && clothingMaterialRef.current instanceof THREE.Material) {
       (clothingMaterialRef.current as THREE.MeshStandardMaterial).color.set(clothingColor);
@@ -235,9 +327,9 @@ export default function Scene({
     <Box
       ref={containerRef}
       sx={{
-        width: '100%',
-        height: '100%',
-        position: 'relative'
+        width: "100%",
+        height: "100%",
+        position: "relative"
       }}
     >
       {isLoading && (
