@@ -5,7 +5,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-
 interface SceneProps {
   avatarUrl: string | null;
   clothingUrl: string | null;
@@ -34,7 +33,8 @@ export default function Scene({
   const animationFrameIdRef = useRef<number | null>(null);
   const loaderRef = useRef<GLTFLoader | null>(null);
   const isInitializedRef = useRef<boolean>(false);
-  
+  const dracoLoader = useRef<DRACOLoader | null>(null);
+
   useEffect(() => {
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
@@ -45,14 +45,11 @@ export default function Scene({
     }
 
     const gltfLoader = new GLTFLoader();
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('/draco-gltf/');
-    gltfLoader.setDRACOLoader(dracoLoader);
+    dracoLoader.current = new DRACOLoader();
+    dracoLoader.current.setDecoderPath('/draco-gltf/');
+    gltfLoader.setDRACOLoader(dracoLoader.current);
     loaderRef.current = gltfLoader;
 
-    if (!containerRef.current) return;
-
-    // create scene, camera, renderer, light
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x2a2a2a);
     sceneRef.current = scene;
@@ -71,7 +68,7 @@ export default function Scene({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    containerRef.current.appendChild(renderer.domElement);
+    containerRef.current?.appendChild(renderer.domElement);
     rendererRef.current = renderer;
     
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -99,28 +96,19 @@ export default function Scene({
     const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222)
     scene.add(gridHelper);
 
-    function StartAnimationLoop() {
-      if (animationFrameIdRef.current !== null) {
-        cancelAnimationFrame(animationFrameIdRef.current);
-      }
-
+    function startAnimationLoop() {
       const animate = () => {
+        if (!sceneRef.current || !cameraRef.current || !rendererRef.current) return;
         animationFrameIdRef.current = requestAnimationFrame(animate);
-        
-        if (controlsRef.current) {
-          controlsRef.current.update();
-        }
-        if (cameraRef.current && sceneRef.current && rendererRef.current) {
-          rendererRef.current.render(sceneRef.current, cameraRef.current);
-        }
-      };
 
+        controlsRef.current?.update();
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+      };
       animate();
     }
 
-    StartAnimationLoop()
+    startAnimationLoop();
 
-    // resize window
     const handleResize = () => {
       if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
       const width = containerRef.current.clientWidth;
@@ -129,43 +117,35 @@ export default function Scene({
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(width, height);
     };
+
     window.addEventListener('resize', handleResize);
-    const container = containerRef.current
-    
+    const container = containerRef.current;
+
     return () => {
       isInitializedRef.current = false;
-
       if (animationFrameIdRef.current !== null) {
         cancelAnimationFrame(animationFrameIdRef.current);
         animationFrameIdRef.current = null;
       }
 
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('resize', handleResize);
       if (rendererRef.current && container) {
         container.removeChild(rendererRef.current.domElement);
       }
 
-      if (sceneRef.current) {
-        sceneRef.current.traverse((object) => {
-          if (object instanceof THREE.Mesh) {
-            if (object.geometry) object.geometry.dispose();
-            if (object.material) {
-              if (Array.isArray(object.material)) {
-                object.material.forEach(material => material.dispose());
-              } else {
-                object.material.dispose();
-              }
-            }
+      sceneRef.current?.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry?.dispose();
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((mat) => mat.dispose());
+          } else {
+            obj.material?.dispose();
           }
-        });
-      }
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-      }
+        }
+      });
 
-      if (dracoLoader) {
-        dracoLoader.dispose();
-      }
+      rendererRef.current?.dispose();
+      dracoLoader.current?.dispose();
 
       sceneRef.current = null;
       cameraRef.current = null;
@@ -175,11 +155,34 @@ export default function Scene({
       clothingRef.current = null;
       clothingMaterialRef.current = null;
       loaderRef.current = null;
+      dracoLoader.current = null;
     };
-
   }, []);
 
-  // load avatar model
+  // 🧠 Reusable outside helper function
+  // const hideCoveredAvatarParts = (avatarModel: THREE.Object3D | null, clothingModel: THREE.Object3D | null) => {
+  //   if (!avatarModel || !clothingModel) return;
+
+  //   const coveredParts: string[] = [];
+
+  //   avatarModel.traverse((avatarNode) => {
+  //     if (!(avatarNode instanceof THREE.Mesh)) return;
+  //     const avatarBox = new THREE.Box3().setFromObject(avatarNode);
+
+  //     clothingModel.traverse((clothingNode) => {
+  //       if (!(clothingNode instanceof THREE.Mesh)) return;
+  //       const clothingBox = new THREE.Box3().setFromObject(clothingNode);
+
+  //       if (avatarBox.intersectsBox(clothingBox)) {
+  //         avatarNode.visible = false;
+  //         coveredParts.push(avatarNode.name);
+  //       }
+  //     });
+  //   });
+
+  //   console.log('Dynamically hidden parts:', coveredParts);
+  // };
+
   useEffect(() => {
     if (!avatarUrl || !sceneRef.current || !loaderRef.current) return;
 
@@ -220,6 +223,7 @@ export default function Scene({
           }
         });
 
+        
         // positioning
         model.position.set(0, 0, 0);
         model.scale.set(1, 1, 1);
@@ -253,6 +257,7 @@ export default function Scene({
         if (rendererRef.current && cameraRef.current && sceneRef.current) {
           rendererRef.current.render(sceneRef.current, cameraRef.current)
         }
+
       },
       (xhr) => {
         console.log((xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
@@ -262,11 +267,12 @@ export default function Scene({
         onLoadingComplete();
       }
     );
-  }, [avatarUrl, onLoadingComplete, clothingUrl]);
+  }, [avatarUrl, onLoadingComplete]);
 
-  // load clothing model
+  // Clothing model loader
   useEffect(() => {
     if (!clothingUrl || !sceneRef.current || !loaderRef.current) return;
+
     if (clothingRef.current) {
       sceneRef.current.remove(clothingRef.current);
       clothingRef.current = null;
@@ -277,41 +283,58 @@ export default function Scene({
       clothingUrl,
       (gltf) => {
         const model = gltf.scene;
+        model.rotation.y = Math.PI;
 
-        // clothing the material color
-        model.traverse((object) => {
-          if (object instanceof THREE.Mesh && object.material) {
-            const newMaterial = new THREE.MeshStandardMaterial({
+        model.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) {
+            const material = new THREE.MeshStandardMaterial({
               color: new THREE.Color(clothingColor),
               roughness: 0.7,
               metalness: 0.2,
+              polygonOffset: true,
+              polygonOffsetFactor: 1,
+              polygonOffsetUnits: 1,
+              depthTest: true,
             });
-            clothingMaterialRef.current = newMaterial;
-            object.material = newMaterial;
+            obj.material = material;
+            clothingMaterialRef.current = material;
+            obj.castShadow = true;
+            obj.receiveShadow = false;
           }
         });
-        // position relative to the avatar
+
         if (avatarRef.current) {
           const avatarBox = new THREE.Box3().setFromObject(avatarRef.current);
           const clothingBox = new THREE.Box3().setFromObject(model);
-          const avatarSize = avatarBox.getSize(new THREE.Vector3());
-          const clothingSize = clothingBox.getSize(new THREE.Vector3());
-          model.position.x = 0;
-          model.position.y = avatarSize.y / 2 - clothingSize.y / 2;
-          model.position.z = 0.05;
+
+          const avatarMax = Math.max(...avatarBox.getSize(new THREE.Vector3()).toArray());
+          const clothingMax = Math.max(...clothingBox.getSize(new THREE.Vector3()).toArray());
+
+          if (clothingMax > 0) {
+            const scale = (avatarMax / clothingMax) * 0.7;
+            model.scale.setScalar(scale);
+
+            const newClothingBox = new THREE.Box3().setFromObject(model);
+            const avatarCenter = avatarBox.getCenter(new THREE.Vector3());
+            const clothingCenter = newClothingBox.getCenter(new THREE.Vector3());
+
+            model.position.copy(avatarCenter).sub(clothingCenter);
+          }
         }
+
         model.visible = isClothingVisible;
+
         if (sceneRef.current) {
           sceneRef.current.add(model);
           clothingRef.current = model;
-          onLoadingComplete();
+          // hideCoveredAvatarParts(avatarRef.current, model);
         }
+
+        onLoadingComplete();
       },
-      (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
-      },
-      (error) => {
-        console.error('Error loading avatar model:', error);
+      undefined,
+      (err) => {
+        console.error('Error loading clothing model:', err);
         onLoadingComplete();
       }
     );
@@ -321,7 +344,7 @@ export default function Scene({
     if (clothingMaterialRef.current && clothingMaterialRef.current instanceof THREE.Material) {
       (clothingMaterialRef.current as THREE.MeshStandardMaterial).color.set(clothingColor);
     }
-  }, [clothingColor])
+  }, [clothingColor]);
 
   return (
     <Box
@@ -329,7 +352,7 @@ export default function Scene({
       sx={{
         width: "100%",
         height: "100%",
-        position: "relative"
+        position: "relative",
       }}
     >
       {isLoading && (
@@ -344,13 +367,12 @@ export default function Scene({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 10
+            zIndex: 10,
           }}
         >
           <CircularProgress color="secondary" size={60} />
         </Box>
       )}
     </Box>
-  )
+  );
 }
-

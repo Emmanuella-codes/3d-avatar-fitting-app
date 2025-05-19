@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 import { Container, Typography } from '@mui/material'
 import Paper from '@mui/material/Paper';
@@ -46,13 +46,26 @@ function App() {
     });
   };
 
-  const handleLoadingComplete = () => {
-    setState((prev) => ({ ...prev, isLoading: false }));
-  };
+  const handleLoadingComplete = useCallback(() => {
+    setState((prev) => {
+      if ((prev.avatarUrl || prev.clothingUrl) && prev.isLoading) {
+        return { ...prev, isLoading: false };
+      }
+      return prev;
+    });
+  }, []);
+
 
   const handleColorChange = (color: string) => {
     setState((prev) => ({ ...prev, clothingColor: color }));
   };
+
+  useEffect(() => {
+    return () => {
+      if (state.avatarUrl) URL.revokeObjectURL(state.avatarUrl);
+      if (state.clothingUrl) URL.revokeObjectURL(state.clothingUrl);
+    };
+  }, [state.avatarUrl, state.clothingUrl]);
 
   return (
     <Container>
