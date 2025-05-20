@@ -9,10 +9,10 @@ A simple 3D web application that allows users to upload a 3D avatar and clothing
 - Drag-and-drop upload
 - Color picker to change garment color
 - UI Panel (via MUI) to:
-- Upload Avatar
-- Upload Clothing
-- Toggle Clothing Visibility
-- Reset Scene
+-- Upload Avatar
+-- Upload Clothing
+-- Toggle Clothing Visibility
+-- Reset Scene
 
 ## 3D Scene Behavior
 - Avatar is centered in the scene upon upload
