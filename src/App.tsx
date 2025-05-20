@@ -81,7 +81,7 @@ function App() {
         </Stack>
         <Stack direction="column" spacing={3}>
           <Paper>
-            <Stack direction='column' px={{ xs: 1, sm: 2}} spacing={2}>
+            <Stack direction='column' px={{ xs: 1, sm: 2}} spacing={2} my={2}>
               <Upload onAvatarUpload={handleAvatarUpload} onClothingUpload={handleClothingUpload} />
               <ControlPanel onReset={resetScene} />
             </Stack>

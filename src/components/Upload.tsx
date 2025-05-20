@@ -57,7 +57,7 @@ export default function Upload({onAvatarUpload, onClothingUpload}: UploadProps) 
   };
 
   return (
-    <Stack direction="column" spacing={2} mt={2}>
+    <Stack direction="column" spacing={2}>
       <Typography variant="h6" component="h2">Upload Models</Typography>
       <Stack direction="row" justifyContent="center" spacing={2}>
         <Box>

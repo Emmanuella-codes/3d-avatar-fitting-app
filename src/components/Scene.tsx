@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Box, CircularProgress } from "@mui/material";
 import { useEffect, useRef, useCallback } from "react";
 import * as THREE from "three";

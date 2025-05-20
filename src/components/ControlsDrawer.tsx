@@ -75,7 +75,11 @@ export default function ControlsDrawer({
   );
 
   return (
-    <Drawer anchor='right' open={onOpen} onClose={onClose}>
+    <Drawer 
+      anchor={window.innerWidth < 600 ? "bottom" : "right"} 
+      open={onOpen} 
+      onClose={onClose}
+    >
       {ControlsCmp}
     </Drawer>
   );
