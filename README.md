@@ -1,4 +1,27 @@
-# React + TypeScript + Vite
+# 3D Avatar Fitting App
+A simple 3D web application that allows users to upload a 3D avatar and clothing model, fit the clothing onto the avatar, and interact with the 3D scene. Built with Next.js, React, Three.js, and Material UI.
+
+## Core functionality
+- Upload 3D avatar model (.glb / .gltf)
+- Upload clothing model (.glb / .gltf)
+- Basic auto-fit positioning of clothing on avatar (no rigging)
+- 3D scene interaction with OrbitControls (rotate, pan, zoom)
+- Drag-and-drop upload
+- Color picker to change garment color
+- UI Panel (via MUI) to:
+- Upload Avatar
+- Upload Clothing
+- Toggle Clothing Visibility
+- Reset Scene
+
+## 3D Scene Behavior
+- Avatar is centered in the scene upon upload
+- Clothing is positioned relative to the avatar
+- Scene uses ambient and directional lighting
+- Orbit camera supports rotation, zooming, and panning
+
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
