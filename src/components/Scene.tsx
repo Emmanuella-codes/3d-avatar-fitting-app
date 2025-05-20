@@ -1,9 +1,10 @@
 import { Box, CircularProgress } from "@mui/material";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import * as THREE from "three";
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { fitClothingToAvatar } from "../utils";
 
 interface SceneProps {
   avatarUrl: string | null;
@@ -34,6 +35,24 @@ export default function Scene({
   const loaderRef = useRef<GLTFLoader | null>(null);
   const isInitializedRef = useRef<boolean>(false);
   const dracoLoader = useRef<DRACOLoader | null>(null);
+
+  const avatarSkeletonRef = useRef<THREE.Skeleton | null>(null);
+  const avatarBonesRef = useRef<Map<string, THREE.Bone>>(new Map());
+  
+  const cleanupAvatar = useCallback(() => {
+    if (sceneRef.current && avatarRef.current) {
+      sceneRef.current.remove(avatarRef.current);
+      avatarRef.current = null;
+    }
+  }, []);
+
+  const cleanupClothing = useCallback(() => {
+    if (sceneRef.current && clothingRef.current) {
+      sceneRef.current.remove(clothingRef.current);
+      clothingRef.current = null;
+      clothingMaterialRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (isInitializedRef.current) return;
@@ -159,36 +178,21 @@ export default function Scene({
     };
   }, []);
 
-  // 🧠 Reusable outside helper function
-  // const hideCoveredAvatarParts = (avatarModel: THREE.Object3D | null, clothingModel: THREE.Object3D | null) => {
-  //   if (!avatarModel || !clothingModel) return;
-
-  //   const coveredParts: string[] = [];
-
-  //   avatarModel.traverse((avatarNode) => {
-  //     if (!(avatarNode instanceof THREE.Mesh)) return;
-  //     const avatarBox = new THREE.Box3().setFromObject(avatarNode);
-
-  //     clothingModel.traverse((clothingNode) => {
-  //       if (!(clothingNode instanceof THREE.Mesh)) return;
-  //       const clothingBox = new THREE.Box3().setFromObject(clothingNode);
-
-  //       if (avatarBox.intersectsBox(clothingBox)) {
-  //         avatarNode.visible = false;
-  //         coveredParts.push(avatarNode.name);
-  //       }
-  //     });
-  //   });
-
-  //   console.log('Dynamically hidden parts:', coveredParts);
-  // };
-
+  // avatar model loader
   useEffect(() => {
-    if (!avatarUrl || !sceneRef.current || !loaderRef.current) return;
+    if (!sceneRef.current || !loaderRef.current) return;
+
+    if (!avatarUrl) {
+      cleanupAvatar();
+      onLoadingComplete();
+      return;
+    }
 
     if (avatarRef.current) {
       sceneRef.current.remove(avatarRef.current);
       avatarRef.current = null;
+      avatarSkeletonRef.current = null;
+      avatarBonesRef.current.clear();
     }
 
     loaderRef.current.load(
@@ -223,20 +227,58 @@ export default function Scene({
           }
         });
 
+        model.traverse((node) => {
+          if (node instanceof THREE.SkinnedMesh) {
+            console.log('SkinnedMesh found in avatar:', node.name);
+            avatarSkeletonRef.current = node.skeleton;
+            node.skeleton.bones.forEach((bone) => {
+              avatarBonesRef.current.set(bone.name, bone);
+              console.log('Bone found in avatar:', bone.name);
+            });
+
+            if (node.material) {
+              if (Array.isArray(node.material)) {
+                node.material.forEach(mat => {
+                  if (mat.transparent) {
+                    mat.alphaTest = 0.5;
+                    mat.side = THREE.DoubleSide;
+                  }
+                });
+              } else if (node.material.transparent) {
+                node.material.alphaTest = 0.5;
+                node.material.side = THREE.DoubleSide;
+              }
+            }
+            node.castShadow = true;
+            node.receiveShadow = true;
+          } else if (node instanceof THREE.Mesh) {
+            console.log('Mesh found in avatar:', node.name);
+            if (node.material) {
+              if (Array.isArray(node.material)) {
+                node.material.forEach(mat => {
+                  if (mat.transparent) {
+                    mat.alphaTest = 0.5;
+                    mat.side = THREE.DoubleSide;
+                  }
+                });
+              } else if (node.material.transparent) {
+                node.material.alphaTest = 0.5;
+                node.material.side = THREE.DoubleSide;
+              }
+            }
+            node.castShadow = true;
+            node.receiveShadow = true;
+          }
+        })
         
         // positioning
         model.position.set(0, 0, 0);
         model.scale.set(1, 1, 1);
 
         const box = new THREE.Box3().setFromObject(model);
-        // const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         console.log('Bounding box size:', size);
         
-        // model.position.set(0, 0, 0);
-        // model.position.x = -center.x;
-        // model.position.y = -center.y;
-        // model.position.z = -center.z;
         if (cameraRef.current && controlsRef.current) {
           const maxDim = Math.max(size.x, size.y, size.y);
           const fov = cameraRef.current.fov * (Math.PI / 180);
@@ -247,13 +289,18 @@ export default function Scene({
           controlsRef.current.update();
         }
 
-        if (sceneRef.current) {
-          sceneRef.current.add(model);
-          avatarRef.current = model;
-          if (!clothingUrl) {
-            onLoadingComplete();
-          }
+        // if (sceneRef.current) {
+        //   sceneRef.current.add(model);
+        //   avatarRef.current = model;
+        //   if (!clothingUrl) {
+        //     onLoadingComplete();
+        //   }
+        // }
+
+        if (clothingRef.current) {
+          fitClothingToAvatar(clothingRef.current, model, avatarSkeletonRef, avatarBonesRef);
         }
+        
         if (rendererRef.current && cameraRef.current && sceneRef.current) {
           rendererRef.current.render(sceneRef.current, cameraRef.current)
         }
@@ -267,11 +314,17 @@ export default function Scene({
         onLoadingComplete();
       }
     );
-  }, [avatarUrl, onLoadingComplete]);
+  }, [avatarUrl, onLoadingComplete, cleanupAvatar]);
 
   // Clothing model loader
   useEffect(() => {
-    if (!clothingUrl || !sceneRef.current || !loaderRef.current) return;
+    if (!sceneRef.current || !loaderRef.current) return;
+
+    if (!clothingUrl) {
+      cleanupClothing();
+      onLoadingComplete();
+      return;
+    }
 
     if (clothingRef.current) {
       sceneRef.current.remove(clothingRef.current);
@@ -283,7 +336,11 @@ export default function Scene({
       clothingUrl,
       (gltf) => {
         const model = gltf.scene;
-        model.rotation.y = Math.PI;
+        // model.rotation.y = Math.PI;
+
+        
+        // Then nudge Z forward manually
+        model.position.z += 0.05;
 
         model.traverse((obj) => {
           if (obj instanceof THREE.Mesh) {
@@ -338,7 +395,7 @@ export default function Scene({
         onLoadingComplete();
       }
     );
-  }, [clothingColor, clothingUrl, isClothingVisible, onLoadingComplete]);
+  }, [cleanupClothing, clothingColor, clothingUrl, isClothingVisible, onLoadingComplete]);
 
   useEffect(() => {
     if (clothingMaterialRef.current && clothingMaterialRef.current instanceof THREE.Material) {

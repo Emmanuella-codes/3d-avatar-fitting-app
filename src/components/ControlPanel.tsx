@@ -1,7 +1,7 @@
 import { Box, Button, Divider, FormControlLabel, Stack, Switch, Typography } from "@mui/material";
 import { getContrastTextColor } from "../utils";
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+// import VisibilityIcon from '@mui/icons-material/Visibility';
+// import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { HexColorPicker } from "react-colorful";
 
@@ -35,7 +35,6 @@ export default function ControlPanel({
         }
         label={
           <Stack>
-            {isClothingVisible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
             <Typography>Clothing Visibility</Typography>
           </Stack>
         }
@@ -63,15 +62,18 @@ export default function ControlPanel({
           <Divider sx={{ my: 2 }} />
         </>
       )}
-      <Button 
-        variant="outlined"
-        startIcon={<RestartAltIcon />}
-        onClick={onReset}
-        fullWidth
-        color="primary"
-      >
-        Reset Scene
-      </Button>
+      <Stack width="100%" alignItems="center">
+        <Button 
+          variant="outlined"
+          startIcon={<RestartAltIcon />}
+          onClick={onReset}
+          size="medium"
+          color="primary"
+        >
+          Reset Scene
+        </Button>
+      </Stack>
+      
     </Box>
   )
 }

@@ -57,29 +57,34 @@ export default function Upload({onAvatarUpload, onClothingUpload}: UploadProps) 
   };
 
   return (
-    <Box>
+    <Stack direction="column" spacing={2} mt={2}>
       <Typography variant="h6" component="h2">Upload Models</Typography>
-      <Typography variant="subtitle2" gutterBottom>Avatar Model (GLB/GLTF)</Typography>
-      <Box sx={dropzoneStyle} {...getAvatarRootProps()}>
-        <input {...getAvatarInputProps()} />
-        <Stack direction="column" spacing={1} alignItems="center">
-          <PersonIcon fontSize="large" color="primary" />
-          <Typography variant="body2">
-            Drag & drop or click to select
-          </Typography>
-        </Stack>
-      </Box>
-
-      <Typography variant="subtitle2" gutterBottom>Clothing Model (GLB/GLTF)</Typography>
-      <Box sx={dropzoneStyle} {...getClothingRootProps()}>
-        <input {...getClothingInputProps()} />
-        <Stack direction="column" spacing={1} alignItems="center">
-          <CheckroomIcon fontSize="large" color="secondary" />
-          <Typography variant="body2">
-            Drag & drop or click to select
-          </Typography>
-        </Stack>
-      </Box>
-    </Box>
+      <Stack direction="row" justifyContent="center" spacing={2}>
+        <Box>
+          <Typography variant="subtitle2" gutterBottom>Avatar Model (GLB/GLTF)</Typography>
+          <Box sx={dropzoneStyle} {...getAvatarRootProps()}>
+            <input {...getAvatarInputProps()} />
+            <Stack direction="column" spacing={1} alignItems="center">
+              <PersonIcon fontSize="large" color="primary" />
+              <Typography variant="body2">
+                Drag & drop or click to select
+              </Typography>
+            </Stack>
+          </Box>
+        </Box>
+        <Box>
+          <Typography variant="subtitle2" gutterBottom>Clothing Model (GLB/GLTF)</Typography>
+          <Box sx={dropzoneStyle} {...getClothingRootProps()}>
+            <input {...getClothingInputProps()} />
+            <Stack direction="column" spacing={1} alignItems="center">
+              <CheckroomIcon fontSize="large" color="secondary" />
+              <Typography variant="body2">
+                Drag & drop or click to select
+              </Typography>
+            </Stack>
+          </Box>
+        </Box>
+      </Stack>      
+    </Stack>
   )
 }

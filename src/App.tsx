@@ -70,7 +70,7 @@ function App() {
   return (
     <Container>
       <Typography variant="h3" component="h1" gutterBottom align="center">3D Avatar Clothing</Typography>
-      <Stack direction="row" spacing={3}>
+      <Stack direction="column" spacing={3}>
         <Stack direction="column">
           <Paper>
             <Upload onAvatarUpload={handleAvatarUpload} onClothingUpload={handleClothingUpload} />
