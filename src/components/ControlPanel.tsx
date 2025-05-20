@@ -4,9 +4,10 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 type ControlPanelProps = {
   onReset: () => void;
+  hasModel: boolean
 };
 
-export default function ControlPanel({ onReset }: ControlPanelProps) {
+export default function ControlPanel({ onReset, hasModel }: ControlPanelProps) {
   return (
     <Box>
       <Stack width="100%" alignItems="center">
@@ -16,6 +17,7 @@ export default function ControlPanel({ onReset }: ControlPanelProps) {
           onClick={onReset}
           size="medium"
           color="primary"
+          disabled={hasModel}
         >
           Reset Scene
         </Button>

@@ -20,6 +20,10 @@ A simple 3D web application that allows users to upload a 3D avatar and clothing
 - Scene uses ambient and directional lighting
 - Orbit camera supports rotation, zooming, and panning
 
+### 🚀 Live Demo
+- [3D-Avatar-Fitting-App](3d-avatar-fitting.netlify.app)
+
+
 
 ## React + TypeScript + Vite
 

@@ -70,6 +70,8 @@ function App() {
     };
   }, [state.avatarUrl, state.clothingUrl]);
 
+  const isControlPanelDisabled = !state.avatarUrl && !state.clothingUrl;
+
   return (
     <>
       <Container>
@@ -83,7 +85,7 @@ function App() {
           <Paper>
             <Stack direction='column' px={{ xs: 1, sm: 2}} spacing={2} my={2}>
               <Upload onAvatarUpload={handleAvatarUpload} onClothingUpload={handleClothingUpload} />
-              <ControlPanel onReset={resetScene} />
+              <ControlPanel onReset={resetScene} hasModel={isControlPanelDisabled} />
             </Stack>
           </Paper>
           {/* 3D Scene */}
