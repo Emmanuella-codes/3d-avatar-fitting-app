@@ -74,7 +74,7 @@ function App() {
     <>
       <Container>
         <Stack width="100%" direction="row" justifyContent="space-between" alignItems="center" my={{xs: 1, sm: 3}}>
-          <Typography fontSize={{ xs: "15px", sm: "20px"}} variant="h3" component="h1" gutterBottom align="center">3D Avatar Clothing</Typography>
+          <Typography fontSize={{ xs: "15px", sm: "20px"}} variant="h3" component="h1" gutterBottom align="center">3D Avatar Fitting App</Typography>
           <Button onClick={() => setDrawerOpen(true)}>
             <MenuIcon />
           </Button>
