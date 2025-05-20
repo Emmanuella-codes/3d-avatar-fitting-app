@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import './App.css'
-import { Container, Typography } from '@mui/material'
+import {Button, Container, Typography } from '@mui/material'
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import MenuIcon from '@mui/icons-material/Menu';
 import Upload from './components/Upload';
 import ControlPanel from './components/ControlPanel';
 import Scene from './components/Scene';
+import ControlsDrawer from './components/ControlsDrawer';
 
 interface AppProps {
   avatarUrl: string | null;
@@ -22,19 +24,21 @@ function App() {
     isClothingVisible: true,
     isLoading: false,
     clothingColor: '#ffffff',
-  })
+  });
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleAvatarUpload = (url: string) => {
     setState((prev) => ({ ...prev, avatarUrl: url, isLoading: true }));
-  }
+  };
 
   const handleClothingUpload = (url: string) => {
     setState((prev) => ({ ...prev, clothingUrl: url, isLoading: true }));
-  }
+  };
 
   const toggleClothingVisibility = () => {
     setState((prev) => ({ ...prev, isClothingVisible: !prev.isClothingVisible }));
-  }
+  };
 
   const resetScene = () => {
     setState({
@@ -55,7 +59,6 @@ function App() {
     });
   }, []);
 
-
   const handleColorChange = (color: string) => {
     setState((prev) => ({ ...prev, clothingColor: color }));
   };
@@ -68,24 +71,23 @@ function App() {
   }, [state.avatarUrl, state.clothingUrl]);
 
   return (
-    <Container>
-      <Typography variant="h3" component="h1" gutterBottom align="center">3D Avatar Clothing</Typography>
-      <Stack direction="column" spacing={3}>
-        <Stack direction="column">
-          <Paper>
-            <Upload onAvatarUpload={handleAvatarUpload} onClothingUpload={handleClothingUpload} />
-            <ControlPanel 
-              isClothingVisible={state.isClothingVisible} 
-              onToggleClothing={toggleClothingVisibility} 
-              onReset={resetScene} 
-              clothingColor={state.clothingColor} 
-              onColorChange={handleColorChange} 
-              hasClothing={!!state.clothingUrl} 
-            />
-          </Paper>
+    <>
+      <Container>
+        <Stack width="100%" direction="row" justifyContent="space-between" alignItems="center" my={{xs: 1, sm: 3}}>
+          <Typography fontSize={{ xs: "15px", sm: "20px"}} variant="h3" component="h1" gutterBottom align="center">3D Avatar Clothing</Typography>
+          <Button onClick={() => setDrawerOpen(true)}>
+            <MenuIcon />
+          </Button>
         </Stack>
-        {/* 3D Scene */}
-        <Stack width="100%">
+        <Stack direction="column" spacing={3}>
+          <Paper>
+            <Stack direction='column' px={{ xs: 1, sm: 2}} spacing={2}>
+              <Upload onAvatarUpload={handleAvatarUpload} onClothingUpload={handleClothingUpload} />
+              <ControlPanel onReset={resetScene} />
+            </Stack>
+          </Paper>
+          {/* 3D Scene */}
+          <Stack width="100%">
           <Paper
             sx={{
               width: "100%",
@@ -104,10 +106,21 @@ function App() {
               clothingColor={state.clothingColor} 
             />
           </Paper>
+          </Stack>
         </Stack>
-      </Stack>
-    </Container>
-  )
+      </Container>
+      <ControlsDrawer
+        onOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        clothingColor={state.clothingColor}
+        hasClothing={!!state.clothingUrl}
+        onColorChange={handleColorChange} 
+        isClothingVisible={state.isClothingVisible} 
+        onToggleClothing={toggleClothingVisibility }      
+      />
+    </>
+    
+  );
 }
 
 export default App
